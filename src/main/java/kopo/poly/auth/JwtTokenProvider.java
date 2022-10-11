@@ -139,7 +139,9 @@ public class JwtTokenProvider {
     public String getUserId(String token) {
 
         log.info(this.getClass().getName() + ".getUserId Start!");
-        String userId = CmmUtil.nvl(Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject());
+
+        String userId = CmmUtil.nvl(Jwts.parser().setSigningKey(secretKey)
+                .parseClaimsJws(token).getBody().getSubject());
         log.info("userId : " + userId);
 
         log.info(this.getClass().getName() + ".getUserId End!");
@@ -167,7 +169,7 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 쿠기에 저장된 JWT 토큰(Access Token, Refresh Token)
+     * 쿠기에 저장된 JWT 토큰(Access Token, Refresh Token) 가져오기
      *
      * @param request   request 정보
      * @param tokenType token 유형
