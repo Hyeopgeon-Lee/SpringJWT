@@ -27,6 +27,9 @@ public class JwtTokenProvider {
     @Value("${jwt.secret.key}")
     private String secretKey;
 
+    @Value("${jwtw.token.creator}")
+    private String creator;
+
     @Value("${jwt.token.access.valid.time}")
     private long accessTokenValidTime;
 
@@ -66,8 +69,11 @@ public class JwtTokenProvider {
 
         }
 
-        Claims claims = Jwts.claims().setSubject(userId); // JWT 구분자 : PK 저장(userId)
-        claims.put("roles", roles); // 사용자 권한 추가
+        Claims claims = Jwts.claims()
+                .setIssuer(creator) // JWT 토큰 생성자 기입함
+                .setSubject(userId); // 회원아이디 저장 : PK 저장(userId)
+
+        claims.put("roles", roles); // JWT Paylaod에 정의된 기본 옵션 외 정보를 추가 - 사용자 권한 추가
         Date now = new Date();
 
         log.info(this.getClass().getName() + ".createToken End!");
