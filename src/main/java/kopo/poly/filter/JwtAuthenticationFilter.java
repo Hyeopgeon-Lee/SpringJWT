@@ -25,9 +25,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${jwt.secret.key}")
-    private String secretKey;
-
     @Value("${jwt.token.access.valid.time}")
     private long accessTokenValidTime;
 
@@ -36,10 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     // JWT Token 객체
     private final JwtTokenProvider jwtTokenProvider;
-
-    // Refresh Token 회원정보 저장 및 가져오기 위한 @Service
-//    private final IJwtService jwtService;
-
 
     // List객체를 읽기 전용으로 설정하기
     private final List<String> url = Collections.unmodifiableList(
@@ -55,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         log.info(this.getClass().getName() + ".doFilterInternal Start!");
 
-        // 헤더에서 Access Token 가져오기
+        // 쿠키에서 Access Token 가져오기
         String accessToken = CmmUtil.nvl(jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN));
 
         log.info("accessToken : " + accessToken);
@@ -108,18 +101,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 cookie = null;
 
                 cookie = ResponseCookie.from(accessTokenName, reAccessToken)
+                        .domain("localhost")
                         .path("/")
-                        .secure(true)
-                        .sameSite("None")
+//                .secure(true)
+//                .sameSite("None")
+                        .maxAge(accessTokenValidTime) // JWT Refresh Token 만료시간 설정
                         .httpOnly(true)
                         .build();
 
                 response.setHeader("Set-Cookie", cookie.toString());
 
-            } else if (refreshTokenStatus == JwtStatus.EXPIRED) {
+                // 토큰이 유효하면 토큰으로부터 유저 정보를 받아옵니다.
+                // 받은 유저 정보 : hglee67 아이디의 권한을 SpringSecurity에 저장함
+                Authentication authentication = jwtTokenProvider.getAuthentication(reAccessToken);
 
-                // 로그인 화면 이동
-//                response.sendRedirect("");
+                // SecurityContext 에 Authentication 객체를 저장합니다.
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            } else if (refreshTokenStatus == JwtStatus.EXPIRED) {
                 log.info("Refresh Token 만료");
 
             } else {
@@ -128,10 +127,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } else { // 거부할 토큰
-
             log.info("토근 거부");
-//            response.sendRedirect("/");
-            log.info("Access Token 오류");
         }
 
         log.info(this.getClass().getName() + ".doFilterInternal End!");
