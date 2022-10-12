@@ -62,10 +62,10 @@ public class JwtTokenProvider {
         long validTime = 0;
 
         if (tokenType == JwtTokenType.ACCESS_TOKEN) { // Access Token이라면
-            validTime = (accessTokenValidTime * 60 * 1000);
+            validTime = (accessTokenValidTime);
 
         } else if (tokenType == JwtTokenType.REFRESH_TOKEN) { // Refresh Token이라면
-            validTime = (refreshTokenValidTime * 60 * 1000);
+            validTime = (refreshTokenValidTime);
 
         }
 
@@ -82,7 +82,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setClaims(claims) // 정보 저장
                 .setIssuedAt(now) // 토큰 발행 시간 정보
-                .setExpiration(new Date(now.getTime() + (validTime * 60 * 1000))) // set Expire Time
+                .setExpiration(new Date(now.getTime() + (validTime * 1000))) // set Expire Time
                 .signWith(SignatureAlgorithm.HS256, secretKey)  // 사용할 암호화 알고리즘과
                 .compact();
     }

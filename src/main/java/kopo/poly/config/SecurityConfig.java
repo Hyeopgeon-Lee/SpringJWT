@@ -20,6 +20,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // JWT 검증을 위한 필터
+    // 초기 Spring Filter를 Spring에 제어가 불가능했지만, 현재 제어 가능함
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    // JWT 관리 객체
     private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
@@ -67,7 +72,7 @@ public class SecurityConfig {
                 )
                 // Spring Security의 UsernamePasswordAuthenticationFilter가 실행되지 전에
                 // 내가 만든 JwtAuthenticationFilter 필터가 실행되도록 설정함
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
+                .addFilterBefore(jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class)
 
                 // 세션 사용하지 않도록 설정함

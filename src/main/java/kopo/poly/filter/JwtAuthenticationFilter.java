@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -22,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
+@Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -68,15 +70,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // SecurityContext 에 Authentication 객체를 저장합니다.
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        } else if (accessTokenStatus == JwtStatus.EXPIRED) { // 만료된 토큰
+        } else if (accessTokenStatus == JwtStatus.EXPIRED ||
+                accessTokenStatus == JwtStatus.DENIED) { // 만료 및 쿠키에서 삭제된 Access Token인 경우
 
             // Access Token이 만료되면, Refresh Token 유효한지 체크한
-
             // Refresh Token 확인하기
             String refreshToken = CmmUtil.nvl(jwtTokenProvider.resolveToken(request, JwtTokenType.REFRESH_TOKEN));
 
             // Refresh Token 유효기간 검증하기
-            JwtStatus refreshTokenStatus = jwtTokenProvider.validateToken(accessToken);
+            JwtStatus refreshTokenStatus = jwtTokenProvider.validateToken(refreshToken);
 
             log.info("refreshTokenStatus : " + refreshTokenStatus);
 
@@ -91,7 +93,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Access Token 재 발급
                 String reAccessToken = jwtTokenProvider.createToken(userId, userRoles, JwtTokenType.ACCESS_TOKEN);
 
-                ResponseCookie cookie = ResponseCookie.from(accessTokenName, null)
+                log.info("accessTokenName : " + accessTokenName);
+                ResponseCookie cookie = ResponseCookie.from(accessTokenName, "")
                         .maxAge(0)
                         .build();
 
@@ -126,8 +129,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             }
 
-        } else { // 거부할 토큰
-            log.info("토근 거부");
         }
 
         log.info(this.getClass().getName() + ".doFilterInternal End!");
