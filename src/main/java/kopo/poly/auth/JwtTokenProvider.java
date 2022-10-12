@@ -105,6 +105,7 @@ public class JwtTokenProvider {
         log.info("user_id : " + userId);
 
         // Spring Security에 적용한 loadUserByUsername 함수 호출하여 로그인 처리할 사용자 정보 가져오기
+        // 비밀번호 검증까지 완료되면, AuthInfo 값에 정보가 저장됨
         AuthInfo info = (AuthInfo) userInfoSsService.loadUserByUsername(userId);
 
         UserInfoDTO dto = info.getUserInfoDTO();
@@ -126,7 +127,8 @@ public class JwtTokenProvider {
 
         log.info(this.getClass().getName() + ".getAuthentication End!");
 
-        // Spring Security가 아이디와 패스워드 맞는지 체크하기 위해 UsernamePasswordAuthenticationToken 생성
+        // Spring Security가 로그인 성공된 정보를 Spring Security에서 사용하기 위해
+        // Spring Security용 UsernamePasswordAuthenticationToken 생성
         return new UsernamePasswordAuthenticationToken(info, "", pSet);
     }
 
