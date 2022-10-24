@@ -1,6 +1,5 @@
 package kopo.poly.config;
 
-import kopo.poly.auth.JwtTokenProvider;
 import kopo.poly.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +22,6 @@ public class SecurityConfig {
     // JWT 검증을 위한 필터
     // 초기 Spring Filter를 Spring에 제어가 불가능했지만, 현재 제어 가능함
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    // JWT 관리 객체
-    private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
