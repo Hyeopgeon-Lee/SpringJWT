@@ -10,7 +10,7 @@ JWT 토큰 기반 인증 구현
 1. 회원가입 구현
 2. 공지사항 구현
 
-주요 적용 프레임워크 : Spring Boot Frameworks, Spring Data JPA, Spring Security, JWT
+* 주요 적용 프레임워크 : Spring Boot Frameworks, Spring Data JPA, Spring Security, JWT
 
 
 학과 수업에 대한 궁금증은 학과 오픈채팅방에 문의 : https://open.kakao.com/o/gEd0JIad
