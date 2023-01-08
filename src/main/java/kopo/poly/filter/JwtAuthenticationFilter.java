@@ -39,8 +39,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     // List객체를 읽기 전용으로 설정하기
     private final List<String> url = Collections.unmodifiableList(
             Arrays.asList(
-                    "/ss/loginForm",
-                    "/"
+                    "/ss/login",
+                    "/ss/userRegForm"
             )
     );
 
@@ -139,11 +139,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * JwtAuthenticationFilter가 체크하지 않을 URL 체크하여 호출안하기
+     * <p>
+     * 기본 HTML, JS, CSS 제외
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
 
-        return url.stream().anyMatch(exclude -> exclude.equalsIgnoreCase(request.getServletPath()));
+        log.info(this.getClass().getName() + ".shouldNotFilter Start!");
 
+        String path = CmmUtil.nvl(request.getServletPath()); // Request URI
+        log.info("path : " + path);
+
+        boolean res = false;
+
+        // html, css, js 폴더 호출은 JWT 체크 안함
+        if (path.contains("/html/") || path.contains("/css/") || path.contains("/js/")) {
+            res = true;
+
+        } else {
+
+            // JWT 체크 하지 않는 URL 확인
+            if (url.stream().anyMatch(url -> url.equalsIgnoreCase(path))) {
+                res = true;
+            }
+        }
+        return res;
     }
 }

@@ -53,17 +53,17 @@ public class SecurityConfig {
                         .anyRequest().permitAll() // 그 외 나머지 url 요청은 인증 받지 않아도 접속 가능함
                 )
                 .formLogin(login -> login // 로그인 페이지 설정
-                        .loginPage("/ss/loginForm")
+                        .loginPage("/ss/login")
                         .loginProcessingUrl("/ss/loginProc")
                         .usernameParameter("user_id") // 로그인 ID로 사용할 html의 input객체의 name 값
                         .passwordParameter("password") // 로그인 패스워드로 사용할 html의 input객체의 name 값
 
                         // 로그인 성공
-                        .successForwardUrl("/jwt/loginSuccess") // Web MVC, Controller 사용할 때 적용 / 로그인 성공 URL
-                        .failureForwardUrl("/jwt/loginFail") // Web MVC, Controller 사용할 때 적용 / 로그인 실패 URL
+                        .successForwardUrl("/ss/loginSuccess") // Web MVC, Controller 사용할 때 적용 / 로그인 성공 URL
+                        .failureForwardUrl("/ss/loginFail") // Web MVC, Controller 사용할 때 적용 / 로그인 실패 URL
 
                 )
-                .logout(logout -> logout // 로그 아웃 처리
+                .logout(logout -> logout // 로그아웃 처리
                         .logoutSuccessUrl("/")
                 )
                 // Spring Security의 UsernamePasswordAuthenticationFilter가 실행되지 전에

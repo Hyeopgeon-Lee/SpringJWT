@@ -1,20 +1,26 @@
 package kopo.poly.controller;
 
 import kopo.poly.auth.AuthInfo;
+import kopo.poly.auth.JwtTokenProvider;
+import kopo.poly.auth.JwtTokenType;
 import kopo.poly.auth.UserRole;
+import kopo.poly.dto.MsgDTO;
 import kopo.poly.dto.UserInfoDTO;
 import kopo.poly.service.IUserInfoSsService;
 import kopo.poly.util.CmmUtil;
 import kopo.poly.util.EncryptUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -25,34 +31,51 @@ import javax.servlet.http.HttpServletResponse;
 @Controller
 public class UserInfoSsController {
 
+    @Value("${jwt.token.access.valid.time}")
+    private long accessTokenValidTime;
+
+    @Value("${jwt.token.access.name}")
+    private String accessTokenName;
+
+    @Value("${jwt.token.refresh.valid.time}")
+    private long refreshTokenValidTime;
+
+    @Value("${jwt.token.refresh.name}")
+    private String refreshTokenName;
+
+    private final JwtTokenProvider jwtTokenProvider;
+
     // 생성자를 통해 스프링 시작할 때, 메모리에 저장된 객체를 데이터타입에 맞춰 저장하기
     // @Service 어노테이션을 통해 스프링 시작할 때, IUserInfoService 객체가 메모리에 저장됨
     private final IUserInfoSsService userInfoSsService;
 
     // Spring Security에서 제공하는 비밀번호 암호화 객체(해시 함수)
-//    private final PasswordEncoder bCryptPasswordEncoder;
+    private final PasswordEncoder bCryptPasswordEncoder;
 
     /**
      * 회원가입 화면으로 이동
      */
     @GetMapping(value = "userRegForm")
     public String userRegForm() {
-        log.info(this.getClass().getName() + ".user/userRegForm ok!");
+        log.info(this.getClass().getName() + ".userRegForm Start!");
 
-        return "/ss/UserRegForm";
+        log.info(this.getClass().getName() + ".userRegForm End!");
+
+        return "ss/userRegForm";
     }
-
 
     /**
      * 회원가입 로직 처리
      */
-    @RequestMapping(value = "insertUserInfo")
-    public String insertUserInfo(HttpServletRequest request, ModelMap model) throws Exception {
+    @ResponseBody
+    @PostMapping(value = "insertUserInfo")
+    public MsgDTO insertUserInfo(HttpServletRequest request) throws Exception {
 
         log.info(this.getClass().getName() + ".insertUserInfo start!");
 
-        //회원가입 결과에 대한 메시지를 전달할 변수
-        String msg = "";
+        int res = 0; // 회원가입 결과
+        String msg = ""; //회원가입 결과에 대한 메시지를 전달할 변수
+        MsgDTO dto = null; // 결과 메시지 구조
 
         //웹(회원정보 입력화면)에서 받는 정보를 저장할 변수
         UserInfoDTO pDTO = null;
@@ -109,7 +132,7 @@ public class UserInfoSsController {
             pDTO.setUserName(user_name);
 
             //비밀번호는 Spring Security에서 제공하는 해시 암호화 수행
-//            pDTO.setPassword(bCryptPasswordEncoder.encode(password));
+            pDTO.setPassword(bCryptPasswordEncoder.encode(password));
 
             //민감 정보인 이메일은 AES128-CBC로 암호화함
             pDTO.setEmail(EncryptUtil.encAES128CBC(email));
@@ -132,7 +155,7 @@ public class UserInfoSsController {
             /*
              * 회원가입
              * */
-            int res = userInfoSsService.insertUserInfo(pDTO);
+            res = userInfoSsService.insertUserInfo(pDTO);
 
             log.info("회원가입 결과(res) : " + res);
 
@@ -155,69 +178,118 @@ public class UserInfoSsController {
             e.printStackTrace();
 
         } finally {
+            // 결과 메시지 전달하기
+            dto = new MsgDTO();
+            dto.setResult(res);
+            dto.setMsg(msg);
+
             log.info(this.getClass().getName() + ".insertUserInfo End!");
-
-
-            //회원가입 여부 결과 메시지 전달하기
-            model.addAttribute("msg", msg);
-
-            //회원가입 여부 결과 메시지 전달하기
-            model.addAttribute("pDTO", pDTO);
-
-            //변수 초기화(메모리 효율화 시키기 위해 사용함)
-            pDTO = null;
 
         }
 
-        return "/ss/UserRegSuccess";
+        return dto;
     }
-
 
     /**
      * 로그인을 위한 입력 화면으로 이동
      */
-    @GetMapping(value = "loginForm")
-    public String loginForm() {
-        log.info(this.getClass().getName() + ".user/loginForm ok!");
+    @GetMapping(value = "login")
+    public String login() {
+        log.info(this.getClass().getName() + "login Start!");
 
-        return "/ss/LoginForm";
+        log.info(this.getClass().getName() + ".login End!");
+
+        return "ss/login";
     }
 
+    @ResponseBody
     @RequestMapping(value = "loginSuccess")
-    public String loginSuccess(@AuthenticationPrincipal AuthInfo authInfo, ModelMap model) {
+    public MsgDTO loginSuccess(@AuthenticationPrincipal AuthInfo authInfo,
+                               HttpServletResponse response, ModelMap model) throws Exception {
+
+        log.info(this.getClass().getName() + ".loginSuccess Start!");
 
         // Spring Security에 저장된 정보 가져오기
-        UserInfoDTO dto = authInfo.getUserInfoDTO();
+        UserInfoDTO rDTO = authInfo.getUserInfoDTO();
 
-        String userName = CmmUtil.nvl(dto.getUserName());
-        String userId = CmmUtil.nvl(dto.getUserId());
+        if (rDTO == null) {
+            rDTO = new UserInfoDTO();
 
-        log.info("userName :" + userName);
-        log.info("userId :" + userId);
+        }
 
+        String userId = CmmUtil.nvl(rDTO.getUserId());
+        String userName = CmmUtil.nvl(rDTO.getUserName());
+        String userRoles = CmmUtil.nvl(rDTO.getRoles());
+
+        log.info("userId : " + userId);
+        log.info("userName : " + userName);
+        log.info("userRoles : " + userRoles);
+
+        // Access Token 생성
+        String accessToken = jwtTokenProvider.createToken(userId, userRoles, JwtTokenType.ACCESS_TOKEN);
+
+        ResponseCookie cookie = ResponseCookie.from(accessTokenName, accessToken)
+                .domain("localhost")
+                .path("/")
+//                .secure(true)
+//                .sameSite("None")
+                .maxAge(accessTokenValidTime) // JWT Refresh Token 만료시간 설정
+                .httpOnly(true)
+                .build();
+
+        // 기존 쿠기 모두 삭제하고, Cookie에 Access Token 저장하기
+        response.setHeader("Set-Cookie", cookie.toString());
+
+        cookie = null;
+
+        // Refresh Token 생성
+        // Refresh Token은 보안상 노출되면, 위험하기에 Refresh Token은 DB에 저장하고,
+        // DB를 조회하기 위한 값만 Refresh Token으로 생성함
+        // 본 실습은 DB에 저장하지 않고, 사용자 컴퓨터의 쿠키에 저장함
+        // Refresh Token은 Access Token에 비해 만료시간을 길게 설정함
+        String refreshToken = jwtTokenProvider.createToken(userId, userRoles, JwtTokenType.REFRESH_TOKEN);
+
+        cookie = ResponseCookie.from(refreshTokenName, refreshToken)
+                .domain("localhost")
+                .path("/")
+//                .secure(true)
+//                .sameSite("None")
+                .maxAge(refreshTokenValidTime) // JWT Refresh Token 만료시간 설정
+                .httpOnly(true)
+                .build();
+
+        // 기존 쿠기에 Refresh Token 저장하기
+        response.addHeader("Set-Cookie", cookie.toString());
+
+        // 결과 메시지 전달하기
+        MsgDTO dto = new MsgDTO();
+        dto.setResult(1);
+        dto.setMsg(userName + "님 로그인이 성공하였습니다.");
+
+        // JSP에 값 전달하기
         model.addAttribute("userName", userName);
-        model.addAttribute("userId", userId);
 
-        return "/ss/LoginSuccess";
+        log.info(this.getClass().getName() + ".loginSuccess End!");
+
+        return dto;
 
     }
 
-
+    @ResponseBody
     @RequestMapping(value = "loginFail")
-    public String loginFail() {
-        return "/ss/LoginFail";
+    public MsgDTO loginFail() {
 
-    }
+        log.info(this.getClass().getName() + ".loginFail Start!");
 
+        // 결과 메시지 전달하기
+        MsgDTO dto = new MsgDTO();
+        dto.setResult(0);
+        dto.setMsg("로그인이 실패하였습니다.");
 
-    @GetMapping(value = "logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response) {
+        log.info(this.getClass().getName() + ".loginFail End!");
 
-        // 로그아웃 처리하기
-        new SecurityContextLogoutHandler().logout(
-                request, response, SecurityContextHolder.getContext().getAuthentication());
+        return dto;
 
-        return "/";
     }
 
 }
