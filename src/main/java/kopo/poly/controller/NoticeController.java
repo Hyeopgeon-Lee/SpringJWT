@@ -1,11 +1,14 @@
 package kopo.poly.controller;
 
+import kopo.poly.auth.JwtTokenProvider;
+import kopo.poly.auth.JwtTokenType;
 import kopo.poly.dto.MsgDTO;
 import kopo.poly.dto.NoticeDTO;
 import kopo.poly.service.INoticeService;
 import kopo.poly.util.CmmUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,22 +39,42 @@ public class NoticeController {
     // @RequiredArgsConstructor 를 통해 메모리에 올라간 서비스 객체를 Controller에서 사용할 수 있게 주입함
     private final INoticeService noticeService;
 
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Value("${jwt.token.access.name}")
+    private String accessTokenName;
+
+    /**
+     * JWT Access Token으로부터 user_id 가져오기
+     *
+     * @param request
+     * @return 회원아이디
+     */
+    private String getUserIdFromToken(HttpServletRequest request) {
+
+        // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
+        log.info(this.getClass().getName() + ".getUserIdFromToken Start!");
+
+        //JWT Access 토큰 가져오기
+        String jwtAccessToken = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
+
+        log.info("jwtAccessToken : " + jwtAccessToken);
+
+        //JWT Access 토큰으로부터 회원아이디 가져오기
+        return jwtTokenProvider.getUserId(jwtAccessToken);
+    }
+
     /**
      * 게시판 리스트 보여주기
      * <p>
      * GetMapping(value = "notice/noticeList") =>  GET방식을 통해 접속되는 URL이 notice/noticeList 경우 아래 함수를 실행함
      */
     @GetMapping(value = "noticeList")
-    public String noticeList(HttpSession session, ModelMap model)
+    public String noticeList(ModelMap model)
             throws Exception {
 
         // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".noticeList Start!");
-
-        // 로그인된 사용자 아이디는 Session에 저장함
-        // 교육용으로 아직 로그인을 구현하지 않았기 때문에 Session에 데이터를 저장하지 않았음
-        // 추후 로그인을 구현할 것으로 가정하고, 공지사항 리스트 출력하는 함수에서 로그인 한 것처럼 Session 값을 생성함
-        session.setAttribute("SESSION_USER_ID", "USER01");
 
         // 공지사항 리스트 조회하기
         // Java 8부터 제공되는 Optional 활용하여 NPE(Null Pointer Exception) 처리
@@ -98,7 +120,7 @@ public class NoticeController {
      */
     @ResponseBody
     @PostMapping(value = "noticeInsert")
-    public MsgDTO noticeInsert(HttpServletRequest request, HttpSession session) {
+    public MsgDTO noticeInsert(HttpServletRequest request) {
 
         log.info(this.getClass().getName() + ".noticeInsert Start!");
 
@@ -107,9 +129,8 @@ public class NoticeController {
         MsgDTO dto = null; // 결과 메시지 구조
 
         try {
-            // 로그인된 사용자 아이디를 가져오기
-            // 로그인을 아직 구현하지 않았기에 공지사항 리스트에서 로그인 한 것처럼 Session 값을 저장함
-            String userId = CmmUtil.nvl((String) session.getAttribute("SESSION_USER_ID"));
+            //JWT Access 토큰으로부터 회원아이디 가져오기
+            String userId = this.getUserIdFromToken(request);
             String title = CmmUtil.nvl(request.getParameter("title")); // 제목
             String noticeYn = CmmUtil.nvl(request.getParameter("noticeYn")); // 공지글 여부
             String contents = CmmUtil.nvl(request.getParameter("contents")); // 내용
@@ -119,7 +140,7 @@ public class NoticeController {
              * 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
              * ####################################################################################
              */
-            log.info("session user_id : " + userId);
+            log.info("userId : " + userId);
             log.info("title : " + title);
             log.info("noticeYn : " + noticeYn);
             log.info("contents : " + contents);
@@ -187,6 +208,7 @@ public class NoticeController {
 
         // 조회된 리스트 결과값 넣어주기
         model.addAttribute("rDTO", rDTO);
+        model.addAttribute("userId", this.getUserIdFromToken(request)); // 로그인 아이디
 
         log.info(this.getClass().getName() + ".noticeInfo End!");
 
@@ -222,6 +244,7 @@ public class NoticeController {
 
         // 조회된 리스트 결과값 넣어주기
         model.addAttribute("rDTO", rDTO);
+        model.addAttribute("userId", this.getUserIdFromToken(request)); // 로그인 아이디
 
         log.info(this.getClass().getName() + ".noticeEditInfo End!");
 
@@ -233,7 +256,7 @@ public class NoticeController {
      */
     @ResponseBody
     @PostMapping(value = "noticeUpdate")
-    public MsgDTO noticeUpdate(HttpSession session, HttpServletRequest request) {
+    public MsgDTO noticeUpdate(HttpServletRequest request) {
 
         log.info(this.getClass().getName() + ".noticeUpdate Start!");
 
@@ -241,7 +264,7 @@ public class NoticeController {
         MsgDTO dto = null; // 결과 메시지 구조
 
         try {
-            String userId = CmmUtil.nvl((String) session.getAttribute("SESSION_USER_ID")); // 아이디
+            String userId = this.getUserIdFromToken(request);
             String nSeq = CmmUtil.nvl(request.getParameter("nSeq")); // 글번호(PK)
             String title = CmmUtil.nvl(request.getParameter("title")); // 제목
             String noticeYn = CmmUtil.nvl(request.getParameter("noticeYn")); // 공지글 여부
