@@ -69,7 +69,7 @@ public class UserInfoSsController {
      */
     @ResponseBody
     @PostMapping(value = "insertUserInfo")
-    public MsgDTO insertUserInfo(HttpServletRequest request) throws Exception {
+    public MsgDTO insertUserInfo(HttpServletRequest request) {
 
         log.info(this.getClass().getName() + ".insertUserInfo start!");
 
@@ -205,7 +205,7 @@ public class UserInfoSsController {
     @ResponseBody
     @RequestMapping(value = "loginSuccess")
     public MsgDTO loginSuccess(@AuthenticationPrincipal AuthInfo authInfo,
-                               HttpServletResponse response, ModelMap model) throws Exception {
+                               HttpServletResponse response, ModelMap model) {
 
         log.info(this.getClass().getName() + ".loginSuccess Start!");
 

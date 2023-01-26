@@ -4,11 +4,11 @@ import kopo.poly.auth.JwtTokenProvider;
 import kopo.poly.auth.JwtTokenType;
 import kopo.poly.dto.MsgDTO;
 import kopo.poly.dto.NoticeDTO;
+import kopo.poly.dto.TokenDTO;
 import kopo.poly.service.INoticeService;
 import kopo.poly.util.CmmUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,14 +41,8 @@ public class NoticeController {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Value("${jwt.token.access.name}")
-    private String accessTokenName;
-
     /**
      * JWT Access Token으로부터 user_id 가져오기
-     *
-     * @param request
-     * @return 회원아이디
      */
     private String getUserIdFromToken(HttpServletRequest request) {
 
@@ -56,12 +50,13 @@ public class NoticeController {
         log.info(this.getClass().getName() + ".getUserIdFromToken Start!");
 
         //JWT Access 토큰 가져오기
-        String jwtAccessToken = jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN);
-
+        String jwtAccessToken = CmmUtil.nvl(jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN));
         log.info("jwtAccessToken : " + jwtAccessToken);
 
-        //JWT Access 토큰으로부터 회원아이디 가져오기
-        return jwtTokenProvider.getUserId(jwtAccessToken);
+        TokenDTO dto = Optional.ofNullable(jwtTokenProvider.getTokenInfo(jwtAccessToken)).orElseGet(TokenDTO::new);
+
+        return CmmUtil.nvl(dto.getUserId());
+
     }
 
     /**
@@ -70,8 +65,7 @@ public class NoticeController {
      * GetMapping(value = "notice/noticeList") =>  GET방식을 통해 접속되는 URL이 notice/noticeList 경우 아래 함수를 실행함
      */
     @GetMapping(value = "noticeList")
-    public String noticeList(ModelMap model)
-            throws Exception {
+    public String noticeList(ModelMap model) {
 
         // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".noticeList Start!");

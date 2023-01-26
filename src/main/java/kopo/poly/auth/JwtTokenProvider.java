@@ -1,6 +1,7 @@
 package kopo.poly.auth;
 
 import io.jsonwebtoken.*;
+import kopo.poly.dto.TokenDTO;
 import kopo.poly.dto.UserInfoDTO;
 import kopo.poly.service.IUserInfoSsService;
 import kopo.poly.util.CmmUtil;
@@ -17,6 +18,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
@@ -99,8 +101,11 @@ public class JwtTokenProvider {
         log.info(this.getClass().getName() + ".getAuthentication Start!");
         log.info("getAuthentication : " + token);
 
+        // 토큰에 저장된 정보가져오기
+        TokenDTO tokenInfo = Optional.ofNullable(getTokenInfo(token)).orElseGet(TokenDTO::new);
+
         // JWT 토큰에 저장된 사용자 아이디 : hglee67
-        String userId = CmmUtil.nvl(getUserId(token));
+        String userId = CmmUtil.nvl(tokenInfo.getUserId());
 
         log.info("user_id : " + userId);
 
@@ -108,11 +113,8 @@ public class JwtTokenProvider {
         // 비밀번호 검증까지 완료되면, AuthInfo 값에 정보가 저장됨
         AuthInfo info = (AuthInfo) userInfoSsService.loadUserByUsername(userId);
 
-        UserInfoDTO dto = info.getUserInfoDTO();
-
-        if (dto == null) {
-            dto = new UserInfoDTO();
-        }
+        // 로그인된 회원정보가져오기
+        UserInfoDTO dto = Optional.ofNullable(info.getUserInfoDTO()).orElseGet(UserInfoDTO::new);
 
         // DB에 저장된 사용자의 권한
         String roles = CmmUtil.nvl(dto.getRoles()); // 권한 가져오기
@@ -133,41 +135,32 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰(Access Token, Refresh Token)에서 회원 정보 추출
+     * JWT 토큰(Access Token, Refresh Token)에 저장된 값 가져오기
      *
      * @param token 토큰
      * @return 회원 아이디(ex. hglee67)
      */
-    public String getUserId(String token) {
+    public TokenDTO getTokenInfo(String token) {
 
-        log.info(this.getClass().getName() + ".getUserId Start!");
+        log.info(this.getClass().getName() + ".getTokenInfo Start!");
 
-        String userId = CmmUtil.nvl(Jwts.parser().setSigningKey(secretKey)
-                .parseClaimsJws(token).getBody().getSubject());
+        // JWT 토큰 정보
+        Claims claims = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
+
+        String userId = CmmUtil.nvl(claims.getSubject());
+        String role = CmmUtil.nvl((String) claims.get("roles")); // LoginService 생성된 토큰의 권한명과 동일
+
         log.info("userId : " + userId);
+        log.info("role : " + role);
 
-        log.info(this.getClass().getName() + ".getUserId End!");
+        TokenDTO pDTO = new TokenDTO();
 
-        return userId;
-    }
+        pDTO.setUserId(userId);
+        pDTO.setRole(role);
 
-    /**
-     * JWT 토큰(Access Token, Refresh Token)에서 회원 정보 추출
-     *
-     * @param token 토큰
-     * @return 회원 아이디(ex. hglee67)
-     */
-    public String getUserRoles(String token) {
+        log.info(this.getClass().getName() + ".getTokenInfo End!");
 
-        log.info(this.getClass().getName() + ".getUserRoles Start!");
-        String roles = CmmUtil.nvl((String) Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token)
-                .getBody().get("roles"));
-
-        log.info("roles : " + roles);
-
-        log.info(this.getClass().getName() + ".getUserRoles End!");
-
-        return roles;
+        return pDTO;
     }
 
     /**

@@ -3,6 +3,7 @@ package kopo.poly.filter;
 import kopo.poly.auth.JwtStatus;
 import kopo.poly.auth.JwtTokenProvider;
 import kopo.poly.auth.JwtTokenType;
+import kopo.poly.dto.TokenDTO;
 import kopo.poly.util.CmmUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,8 +85,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Refresh Token이 유효하면, Access Token 재발급
             if (refreshTokenStatus == JwtStatus.ACCESS) {
-                String userId = CmmUtil.nvl(jwtTokenProvider.getUserId(refreshToken)); // 회원 아이디
-                String userRoles = CmmUtil.nvl(jwtTokenProvider.getUserRoles(refreshToken)); // 회원 권한
+
+                TokenDTO dto = jwtTokenProvider.getTokenInfo(refreshToken); // 토큰에 저장된 정보가져오기
+
+                String userId = CmmUtil.nvl(dto.getUserId()); // 회원 아이디
+                String userRoles = CmmUtil.nvl(dto.getRole()); // 회원 권한
 
                 log.info("refreshToken userId : " + userId);
                 log.info("refreshToken userRoles : " + userRoles);
@@ -143,7 +147,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 기본 HTML, JS, CSS 제외
      */
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
 
         log.info(this.getClass().getName() + ".shouldNotFilter Start!");
 
