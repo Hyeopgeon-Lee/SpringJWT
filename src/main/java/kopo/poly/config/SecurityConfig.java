@@ -3,6 +3,7 @@ package kopo.poly.config;
 import kopo.poly.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,6 +19,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 @EnableWebSecurity
 public class SecurityConfig {
+
+    @Value("${jwt.token.access.name}")
+    private String accessTokenName;
+
+    @Value("${jwt.token.refresh.name}")
+    private String refreshTokenName;
 
     // JWT 검증을 위한 필터
     // 초기 Spring Filter를 Spring에 제어가 불가능했지만, 현재 제어 가능함
@@ -65,6 +72,7 @@ public class SecurityConfig {
                 )
                 .logout(logout -> logout // 로그아웃 처리
                         .logoutUrl("/user/logout")
+                        .deleteCookies(accessTokenName, refreshTokenName)
                         .logoutSuccessUrl("/html/index.html")
                 )
                 // Spring Security의 UsernamePasswordAuthenticationFilter가 실행되지 전에
