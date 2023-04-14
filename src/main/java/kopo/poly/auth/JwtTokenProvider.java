@@ -90,51 +90,6 @@ public class JwtTokenProvider {
     }
 
     /**
-     * JWT 토큰(Access Token, Refresh Token)에서 인증 정보 조회 및
-     * 아이디, 패스워드가 맞다면, Spring Security를 통해 로그인처리하기
-     *
-     * @param token 토큰
-     * @return 인증 처리한 정보(로그인 성공, 실패)
-     */
-    public Authentication getAuthentication(String token) {
-
-        log.info(this.getClass().getName() + ".getAuthentication Start!");
-        log.info("getAuthentication : " + token);
-
-        // 토큰에 저장된 정보가져오기
-        TokenDTO tokenInfo = Optional.ofNullable(getTokenInfo(token)).orElseGet(TokenDTO::new);
-
-        // JWT 토큰에 저장된 사용자 아이디 : hglee67
-        String userId = CmmUtil.nvl(tokenInfo.getUserId());
-
-        log.info("user_id : " + userId);
-
-        // Spring Security에 적용한 loadUserByUsername 함수 호출하여 로그인 처리할 사용자 정보 가져오기
-        // 비밀번호 검증까지 완료되면, AuthInfo 값에 정보가 저장됨
-        AuthInfo info = (AuthInfo) userInfoSsService.loadUserByUsername(userId);
-
-        // 로그인된 회원정보가져오기
-        UserInfoDTO dto = Optional.ofNullable(info.getUserInfoDTO()).orElseGet(UserInfoDTO::new);
-
-        // DB에 저장된 사용자의 권한
-        String roles = CmmUtil.nvl(dto.getRoles()); // 권한 가져오기
-
-        Set<GrantedAuthority> pSet = new HashSet<>();
-        if (roles.length() > 0) { //DB에 저장된 Role이 있는 경우에만 실행
-            for (String role : roles.split(",")) {
-                pSet.add(new SimpleGrantedAuthority(role));
-
-            }
-        }
-
-        log.info(this.getClass().getName() + ".getAuthentication End!");
-
-        // Spring Security가 로그인 성공된 정보를 Spring Security에서 사용하기 위해
-        // Spring Security용 UsernamePasswordAuthenticationToken 생성
-        return new UsernamePasswordAuthenticationToken(info, "", pSet);
-    }
-
-    /**
      * JWT 토큰(Access Token, Refresh Token)에 저장된 값 가져오기
      *
      * @param token 토큰
@@ -161,6 +116,51 @@ public class JwtTokenProvider {
         log.info(this.getClass().getName() + ".getTokenInfo End!");
 
         return pDTO;
+    }
+
+    /**
+     * 매 요청마다 JWT 토큰(Access Token, Refresh Token)으로부터 받은 아이디, 권한 정보를
+     * Spring Security 인증 정보에 넣어 권한에 맞게 접근 제어하도록 처리함
+     *
+     * @param token 토큰
+     * @return 인증 처리한 정보(로그인 성공, 실패)
+     */
+    public Authentication getAuthentication(String token) {
+
+        log.info(this.getClass().getName() + ".getAuthentication Start!");
+        log.info("getAuthentication : " + token);
+
+        // 토큰에 저장된 정보가져오기
+        TokenDTO tokenInfo = Optional.ofNullable(getTokenInfo(token)).orElseGet(TokenDTO::new);
+
+        // JWT 토큰에 저장된 사용자 아이디 : hglee67
+        String userId = CmmUtil.nvl(tokenInfo.getUserId());
+
+        log.info("user_id : " + userId);
+
+        // Spring Security에 적용한 loadUserByUsername 함수 호출하여 회원 DB에 존재하는지 체크
+        // 회원이 존재하면, 인증 정보 생성함
+        AuthInfo info = (AuthInfo) userInfoSsService.loadUserByUsername(userId);
+
+        // AuthInfo 객체에 저장된 회원정보가져오기
+        UserInfoDTO dto = Optional.ofNullable(info.getUserInfoDTO()).orElseGet(UserInfoDTO::new);
+
+        // 회원정보 DB에 저장된 사용자의 권한을 가져오기(1명이 여러 권한을 가질 수 있으며 권한 구분자는 ,)
+        String roles = CmmUtil.nvl(dto.getRoles()); // 권한 예 : ROLE_ADMIN, ROLE_USER
+
+        Set<GrantedAuthority> pSet = new HashSet<>(); // 1명이 여러 권한을 가질 수 있으며, 중복권한이 안되게 Set 구조 사용
+
+        if (roles.length() > 0) { // DB에 저장된 Role이 있는 경우에만 실행
+            for (String role : roles.split(",")) { //여러 권한의 구분자 ,
+                pSet.add(new SimpleGrantedAuthority(role)); // 권한 저장하기
+
+            }
+        }
+
+        log.info(this.getClass().getName() + ".getAuthentication End!");
+
+        // JWT 토큰에 저장된 권한에 맞춰 Spring Security가 권한 체크하도록 Filter 호출
+        return new UsernamePasswordAuthenticationToken(info, "", pSet);
     }
 
     /**
