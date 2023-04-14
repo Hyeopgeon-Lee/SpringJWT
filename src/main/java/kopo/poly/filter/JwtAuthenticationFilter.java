@@ -41,7 +41,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final List<String> url = Collections.unmodifiableList(
             Arrays.asList(
                     "/ss/login",
-                    "/ss/userRegForm"
+                    "/ss/userRegForm",
+                    "/ss/logoutSuccess"
             )
     );
 

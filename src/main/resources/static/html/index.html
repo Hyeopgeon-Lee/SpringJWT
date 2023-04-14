@@ -3,44 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>메인화면</title>
+    <link rel="stylesheet" href="/css/table.css"/>
     <script type="text/javascript" src="/js/jquery-3.6.0.min.js"></script>
     <script type="text/javascript">
 
-        // HTML로딩이 완료되고, 실행됨
+        // HTML 로딩이 완료되고, 실행됨
         $(document).ready(function () {
 
-            // html의 btnLogin id의 버튼 객체 가져오기
-            const btnSSLogin = document.getElementById("btnSSLogin");
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            btnSSLogin.addEventListener("click", e => {
-                document.location.href = "/ss/login";
+            // Spring Security + JWT 로그인
+            $("#btnLogin").on("click", function () { // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
+                location.href = "/ss/login";
             })
 
-            // html의 btnLogin id의 버튼 객체 가져오기
-            const btnSSUserReg = document.getElementById("btnSSUserReg");
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            btnSSUserReg.addEventListener("click", e => {
-                document.location.href = "/ss/userRegForm";
+            // Spring Security + JWT 로그인 화면 이동
+            $("#btnUserReg").on("click", function () { // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
+                location.href = "/ss/userRegForm";
             })
 
-            // html의 btnLogin id의 버튼 객체 가져오기
-            const btnLogout = document.getElementById("btnLogout");
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            btnLogout.addEventListener("click", e => {
-                document.location.href = "/user/logout";
+            // 로그아웃
+            $("#btnLogout").on("click", function () { // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
+                // Ajax 호출해서 로그인하기
+                $.ajax({
+                    url: "/ss/logout",
+                    type: "post", // 전송방식은 Post
+                    dataType: "JSON", // 전송 결과는 JSON으로 받기
+                    success: function (json) { // /notice/noticeUpdate 호출이 성공했다면..
+                        alert(json.msg); // 메시지 띄우기
+                    }
+                })
             })
 
-            // html의 btnLogin id의 버튼 객체 가져오기
-            const btnNotice = document.getElementById("btnNotice");
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            btnNotice.addEventListener("click", e => {
-                document.location.href = "/notice/noticeList";
+            // 공지사항
+            $("#btnNotice").on("click", function () { // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
+                location.href = "/notice/noticeList";
             })
-
         })
     </script>
 </head>
@@ -48,11 +44,37 @@
 <h2>프로젝트 첫 화면!(메인화면입니다.)</h2>
 <hr/>
 <br/>
-<div>
-    <button id="btnSSLogin" type="button">스프링 시큐리티 로그인 화면 이동</button>
-    <button id="btnSSUserReg" type="button">스프링 시큐리티 회원가입 화면 이동</button>
-    <button id="btnLogout" type="button">로그인된 사용자만 로그아웃 가능</button>
-    <button id="btnNotice" type="button">로그인된 사용자만 공지사항 게시판 접속 가능</button>
+<div class="divTable minimalistBlack">
+    <div class="divTableBody">
+        <div class="divTableRow">
+            <div class="divTableCell">Spring Security + JWT 로그인
+            </div>
+            <div class="divTableCell">
+                <button id="btnLogin" type="button">Spring Security + JWT 로그인 화면 이동</button>
+            </div>
+        </div>
+        <div class="divTableRow">
+            <div class="divTableCell">Spring Security 회원가입
+            </div>
+            <div class="divTableCell">
+                <button id="btnUserReg" type="button">Spring Security 화면 이동</button>
+            </div>
+        </div>
+        <div class="divTableRow">
+            <div class="divTableCell">로그아웃(JWT 토큰 삭제)
+            </div>
+            <div class="divTableCell">
+                <button id="btnLogout" type="button">로그아웃 실행</button>
+            </div>
+        </div>
+        <div class="divTableRow">
+            <div class="divTableCell">공지사항
+            </div>
+            <div class="divTableCell">
+                <button id="btnNotice" type="button">공지사항</button>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

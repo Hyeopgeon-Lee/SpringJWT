@@ -39,14 +39,18 @@ public class NoticeController {
         // 로그 찍기(추후 찍은 로그를 통해 이 함수에 접근했는지 파악하기 용이하다.)
         log.info(this.getClass().getName() + ".getUserIdFromToken Start!");
 
+        String userId = "";
+
         //JWT Access 토큰 가져오기
         String jwtAccessToken = CmmUtil.nvl(jwtTokenProvider.resolveToken(request, JwtTokenType.ACCESS_TOKEN));
         log.info("jwtAccessToken : " + jwtAccessToken);
 
-        TokenDTO dto = Optional.ofNullable(jwtTokenProvider.getTokenInfo(jwtAccessToken)).orElseGet(TokenDTO::new);
+        if (jwtAccessToken.length() > 0) { // Access Token 존재한다면, JWT 토큰으로부터 값 가져오기
+            TokenDTO dto = Optional.ofNullable(jwtTokenProvider.getTokenInfo(jwtAccessToken)).orElseGet(TokenDTO::new);
+            userId = CmmUtil.nvl(dto.getUserId());
+        }
 
-        return CmmUtil.nvl(dto.getUserId());
-
+        return userId;
     }
 
     /**

@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Optional;
 
 @Slf4j
 @RequestMapping(value = "/ss")
@@ -65,6 +66,30 @@ public class UserInfoSsController {
     }
 
     /**
+     * 회원 가입 전 아이디 중복체크하기(Ajax를 통해 입력한 아이디 정보 받음)
+     */
+    @ResponseBody
+    @PostMapping(value = "getUserIdExists")
+    public UserInfoDTO getUserExists(HttpServletRequest request) throws Exception {
+
+        log.info(this.getClass().getName() + ".getUserIdExists Start!");
+
+        String userId = CmmUtil.nvl(request.getParameter("userId")); // 회원아이디
+
+        log.info("userId : " + userId);
+
+        UserInfoDTO pDTO = new UserInfoDTO();
+        pDTO.setUserId(userId);
+
+        // 회원아이디를 통해 중복된 아이디인지 조회
+        UserInfoDTO rDTO = Optional.ofNullable(userInfoSsService.getUserIdExists(pDTO)).orElseGet(UserInfoDTO::new);
+
+        log.info(this.getClass().getName() + ".getUserIdExists End!");
+
+        return rDTO;
+    }
+
+    /**
      * 회원가입 로직 처리
      */
     @ResponseBody
@@ -82,54 +107,25 @@ public class UserInfoSsController {
 
         try {
 
-            /*
-             * #######################################################
-             *        웹(회원정보 입력화면)에서 받는 정보를 String 변수에 저장 시작!!
-             *
-             *    무조건 웹으로 받은 정보는 DTO에 저장하기 위해 임시로 String 변수에 저장함
-             * #######################################################
-             */
-            String user_id = CmmUtil.nvl(request.getParameter("user_id")); //아이디
-            String user_name = CmmUtil.nvl(request.getParameter("user_name")); //이름
+            String userId = CmmUtil.nvl(request.getParameter("userId")); //아이디
+            String userName = CmmUtil.nvl(request.getParameter("userName")); //이름
             String password = CmmUtil.nvl(request.getParameter("password")); //비밀번호
             String email = CmmUtil.nvl(request.getParameter("email")); //이메일
             String addr1 = CmmUtil.nvl(request.getParameter("addr1")); //주소
             String addr2 = CmmUtil.nvl(request.getParameter("addr2")); //상세주소
-            /*
-             * #######################################################
-             *        웹(회원정보 입력화면)에서 받는 정보를 String 변수에 저장 끝!!
-             *
-             *    무조건 웹으로 받은 정보는 DTO에 저장하기 위해 임시로 String 변수에 저장함
-             * #######################################################
-             */
 
-            /*
-             * #######################################################
-             * 	 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함
-             * 						반드시 작성할 것
-             * #######################################################
-             * */
-            log.info("user_id : " + user_id);
-            log.info("user_name : " + user_name);
+            log.info("userId : " + userId);
+            log.info("userName : " + userName);
             log.info("password : " + password);
             log.info("email : " + email);
             log.info("addr1 : " + addr1);
             log.info("addr2 : " + addr2);
 
-
-            /*
-             * #######################################################
-             *        웹(회원정보 입력화면)에서 받는 정보를 DTO에 저장하기 시작!!
-             *
-             *        무조건 웹으로 받은 정보는 DTO에 저장해야 한다고 이해하길 권함
-             * #######################################################
-             */
-
             //웹(회원정보 입력화면)에서 받는 정보를 저장할 변수를 메모리에 올리기
             pDTO = new UserInfoDTO();
 
-            pDTO.setUserId(user_id);
-            pDTO.setUserName(user_name);
+            pDTO.setUserId(userId);
+            pDTO.setUserName(userName);
 
             //비밀번호는 Spring Security에서 제공하는 해시 암호화 수행
             pDTO.setPassword(bCryptPasswordEncoder.encode(password));
@@ -144,13 +140,6 @@ public class UserInfoSsController {
 
             // 권한 부여(관리자)
 //            pDTO.setRoles(UserRole.ADMIN.getValue());
-            /*
-             * #######################################################
-             *        웹(회원정보 입력화면)에서 받는 정보를 DTO에 저장하기 끝!!
-             *
-             *        무조건 웹으로 받은 정보는 DTO에 저장해야 한다고 이해하길 권함
-             * #######################################################
-             */
 
             /*
              * 회원가입
@@ -210,12 +199,7 @@ public class UserInfoSsController {
         log.info(this.getClass().getName() + ".loginSuccess Start!");
 
         // Spring Security에 저장된 정보 가져오기
-        UserInfoDTO rDTO = authInfo.getUserInfoDTO();
-
-        if (rDTO == null) {
-            rDTO = new UserInfoDTO();
-
-        }
+        UserInfoDTO rDTO = Optional.ofNullable(authInfo.getUserInfoDTO()).orElseGet(UserInfoDTO::new);
 
         String userId = CmmUtil.nvl(rDTO.getUserId());
         String userName = CmmUtil.nvl(rDTO.getUserName());
@@ -272,7 +256,6 @@ public class UserInfoSsController {
         log.info(this.getClass().getName() + ".loginSuccess End!");
 
         return dto;
-
     }
 
     @ResponseBody
@@ -287,6 +270,23 @@ public class UserInfoSsController {
         dto.setMsg("로그인이 실패하였습니다.");
 
         log.info(this.getClass().getName() + ".loginFail End!");
+
+        return dto;
+
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "logoutSuccess")
+    public MsgDTO logoutSuccess() {
+
+        log.info(this.getClass().getName() + ".logoutSuccess Start!");
+
+        // 결과 메시지 전달하기
+        MsgDTO dto = new MsgDTO();
+        dto.setResult(0);
+        dto.setMsg("로그아웃 되었습니다.");
+
+        log.info(this.getClass().getName() + ".logoutSuccess End!");
 
         return dto;
 

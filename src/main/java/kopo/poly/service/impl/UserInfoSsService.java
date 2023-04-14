@@ -21,10 +21,34 @@ import java.util.Optional;
 @Service
 public class UserInfoSsService implements IUserInfoSsService {
 
-    // RequiredArgsConstructor 어노테이션으로 생성자를 자동 생성함
-    // userInfoRepository 변수에 이미 메모리에 올라간 UserInfoRepository 객체를 넣어줌
-    // 예전에는 autowired 어노테이션를 통해 설정했었지만, 이젠 생성자를 통해 객체 주입함
     private final UserInfoRepository userInfoRepository;
+
+    @Override
+    public UserInfoDTO getUserIdExists(UserInfoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".getUserIdExists Start!");
+
+        UserInfoDTO rDTO = new UserInfoDTO();
+
+        String userId = CmmUtil.nvl(pDTO.getUserId()); // 아이디
+
+        log.info("userId : " + userId);
+
+        // 회원 가입 중복 방지를 위해 DB에서 데이터 조회
+        Optional<UserInfoEntity> rEntity = userInfoRepository.findByUserId(userId);
+
+        // 값이 존재한다면... (이미 회원가입된 아이디)
+        if (rEntity.isPresent()) {
+            rDTO.setExistsYn("Y"); // 아이디 중복
+
+        } else {
+            rDTO.setExistsYn("N"); // 아이디 중복안됨
+        }
+
+        log.info(this.getClass().getName() + ".getUserIdExists End!");
+
+        return rDTO;
+    }
 
     /**
      * Spring Security에서 로그인 처리를 하기 위해 실행하는 함수

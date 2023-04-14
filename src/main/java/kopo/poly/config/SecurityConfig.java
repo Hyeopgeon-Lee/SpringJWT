@@ -71,9 +71,9 @@ public class SecurityConfig {
 
                 )
                 .logout(logout -> logout // 로그아웃 처리
-                        .logoutUrl("/user/logout")
-                        .deleteCookies(accessTokenName, refreshTokenName)
-                        .logoutSuccessUrl("/html/index.html")
+                        .logoutUrl("/ss/logout")
+                        .deleteCookies(accessTokenName, refreshTokenName) // JWT 토큰 삭제
+                        .logoutSuccessUrl("/ss/logoutSuccess") // 로그아웃 성공하면 호출할 URL
                 )
                 // Spring Security의 UsernamePasswordAuthenticationFilter가 실행되지 전에
                 // 내가 만든 JwtAuthenticationFilter 필터가 실행되도록 설정함
